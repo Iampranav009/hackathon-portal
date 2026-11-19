@@ -7,6 +7,7 @@ import {
   communityEvents,
   hackathonEvents,
   isClosingSoon,
+  mustAttendEvents,
   watchlistItems,
   type PortalEvent,
 } from "../lib/events";
@@ -14,6 +15,7 @@ import {
 const CITIES = ["Bengaluru", "Pune", "Mumbai", "Delhi", "Chennai", "Hyderabad", "Kolkata", "Nagpur", "Online"];
 const NAV = [
   { href: "#home", label: "Home" },
+  { href: "/must-attend", label: "Must Attend" },
   { href: "#events", label: "Events" },
   { href: "#community", label: "Community" },
   { href: "#planner", label: "Planner" },
@@ -197,6 +199,11 @@ export default function Home() {
             <span className="rounded-full bg-white/15 px-3 py-1.5 backdrop-blur">All events shown by default</span>
           </div>
           <div className="mt-6">
+            <a href="/must-attend" className="inline-block rounded-2xl bg-amber-400 px-5 py-3 text-sm font-extrabold text-amber-950 shadow-lg hover:bg-amber-300">
+              ⭐ Must Attend — {mustAttendEvents.length} shortlisted for you →
+            </a>
+          </div>
+          <div className="mt-6">
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -340,7 +347,7 @@ export default function Home() {
 
       {/* Mobile bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-stone-200 bg-white/95 backdrop-blur md:hidden dark:border-stone-800 dark:bg-stone-950/95">
-        <div className="grid grid-cols-5 text-center text-[11px] font-bold">
+        <div className="grid grid-cols-6 text-center text-[11px] font-bold">
           {NAV.map((n) => (
             <a key={n.href} href={n.href} className="py-3 text-stone-600 hover:text-teal-700 dark:text-stone-300">{n.label}</a>
           ))}
