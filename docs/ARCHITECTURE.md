@@ -26,6 +26,47 @@ The UI (`app/page.tsx`) reads the JSON through `lib/events.ts` and renders
 it client-side with search + manual filters. No filter is pre-selected:
 all events show by default.
 
+## "Must Attend" — the shortlist page (`/must-attend`)
+
+`app/must-attend/page.tsx` lists only the events Pranav should actually
+register for or visit. The rule lives in `lib/events.ts` as
+`isMustAttend(e)` and uses only fields already in the JSON — no new
+fields, nothing invented:
+
+1. **Open only** — `status === "open"`.
+2. **Relevant** — `bestFit === true`, OR the event's `category` / `tags`
+   mention AI / GenAI / agents / ML **and** its fee is free or low-cost
+   (fee starts with "Free", or a stated ₹ amount of ₹600 or less).
+   A `null` fee counts as "unknown", not free.
+3. **Reachable** — `mode === "online"`, or `city` is Bengaluru, Pune,
+   Mumbai, Delhi, Chennai, Nagpur, Amravati or Yavatmal (a city string
+   containing "Online" counts as online). An event with no city recorded
+   and a hybrid/offline mode cannot qualify on location.
+
+On 19 Nov 2026 the rule selected **23 hackathons and 33 community
+events (56 total)** from the 94 + 305 in the data. 21 of the 23
+hackathons were closing soon by the `isClosingSoon` deadline rule;
+community events carry no `deadline` field in the data (all null), so
+they are not counted as closing soon — that is a data gap, not "none
+soon".
+
+The page's filters are exactly four toggle chips plus All: **Free**,
+**Paid**, **Hackathons**, **Community Events**. Free/Paid filter by fee
+(Free = fee starts with "Free"; Paid = a stated paid fee; unknown fees
+appear under All only), Hackathons/Community filter by type, and the two
+dimensions combine (e.g. Free + Hackathons). Default is All, no filter
+pre-selected — same as the home page.
+
+Examples of events that looked must-attend but were excluded, and why:
+Innodata AI Hackathon (AI, free, ₹10L) — hybrid with no city recorded,
+so location could not be verified; HackSprint 3.0 (AI, free) — offline
+in Coimbatore, outside the reachable cities; Relate by Neo4j and
+#BuildHybridAI 2026 — Best fit but status "unconfirmed", not open.
+AWS MSP AI Hackathon *is* included (Best fit, online, free) even though
+earlier scans flagged it as MSP-partner-only — check eligibility on the
+official page before applying; the card's own notes/source should be
+read, not just the shortlist.
+
 ## Daily updates — two tracks
 
 ### Track A: automatic (GitHub Action, public sources only)
