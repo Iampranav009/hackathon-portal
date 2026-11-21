@@ -16,6 +16,7 @@ const CITIES = ["Bengaluru", "Pune", "Mumbai", "Delhi", "Chennai", "Hyderabad", 
 const NAV = [
   { href: "#home", label: "Home" },
   { href: "/must-attend", label: "Must Attend" },
+  { href: "/swipe", label: "Swipe" },
   { href: "#events", label: "Events" },
   { href: "#community", label: "Community" },
   { href: "#planner", label: "Planner" },
@@ -198,9 +199,12 @@ export default function Home() {
             <span className="rounded-full bg-white/15 px-3 py-1.5 backdrop-blur">{closingSoon.length} closing soon</span>
             <span className="rounded-full bg-white/15 px-3 py-1.5 backdrop-blur">All events shown by default</span>
           </div>
-          <div className="mt-6">
+          <div className="mt-6 flex flex-wrap gap-3">
             <a href="/must-attend" className="inline-block rounded-2xl bg-amber-400 px-5 py-3 text-sm font-extrabold text-amber-950 shadow-lg hover:bg-amber-300">
               ⭐ Must Attend — {mustAttendEvents.length} shortlisted for you →
+            </a>
+            <a href="/swipe" className="inline-block rounded-2xl bg-white px-5 py-3 text-sm font-extrabold text-teal-800 shadow-lg hover:bg-teal-50">
+              ♥ Swipe hackathons — one card at a time →
             </a>
           </div>
           <div className="mt-6">
@@ -347,7 +351,7 @@ export default function Home() {
 
       {/* Mobile bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-stone-200 bg-white/95 backdrop-blur md:hidden dark:border-stone-800 dark:bg-stone-950/95">
-        <div className="grid grid-cols-6 text-center text-[11px] font-bold">
+        <div className="grid grid-cols-7 text-center text-[11px] font-bold">
           {NAV.map((n) => (
             <a key={n.href} href={n.href} className="py-3 text-stone-600 hover:text-teal-700 dark:text-stone-300">{n.label}</a>
           ))}
