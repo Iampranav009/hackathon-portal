@@ -1,4 +1,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+
+/* Clean, minimal theme: white background, near-black text, one teal accent. */
+:root {
+  --radius: 0.75rem;
+  --background: 0 0% 100%;
+  --foreground: 0 0% 9%;
+  --primary: 174 72% 28%;
+  --primary-foreground: 0 0% 100%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 40%;
+  --border: 0 0% 90%;
+}
+
+@layer base {
+  body {
+    @apply bg-white text-neutral-900 antialiased;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+}
