@@ -50,6 +50,10 @@ community events carry no `deadline` field in the data (all null), so
 they are not counted as closing soon — that is a data gap, not "none
 soon".
 
+On the 21 Nov 2026 sync the rule selected **25 hackathons and 34
+community events (59 total)** from the 224 + 334 in the data; 16 of
+the 25 hackathons were closing soon.
+
 The page's filters are exactly four toggle chips plus All: **Free**,
 **Paid**, **Hackathons**, **Community Events**. Free/Paid filter by fee
 (Free = fee starts with "Free"; Paid = a stated paid fee; unknown fees
