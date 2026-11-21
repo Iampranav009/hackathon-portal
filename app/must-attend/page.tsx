@@ -15,6 +15,7 @@ import { EventCard } from "../components/EventCard";
 const NAV = [
   { href: "/", label: "Home" },
   { href: "/must-attend", label: "Must Attend" },
+  { href: "/swipe", label: "Swipe" },
   { href: "/#events", label: "Events" },
   { href: "/#community", label: "Community" },
   { href: "/#planner", label: "Planner" },
@@ -209,7 +210,7 @@ export default function MustAttend() {
 
       {/* Mobile bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-stone-200 bg-white/95 backdrop-blur md:hidden dark:border-stone-800 dark:bg-stone-950/95">
-        <div className="grid grid-cols-6 text-center text-[11px] font-bold">
+        <div className="grid grid-cols-7 text-center text-[11px] font-bold">
           {NAV.map((n) => (
             <a
               key={n.href}
