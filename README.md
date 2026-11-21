@@ -22,6 +22,16 @@ It is for **engineering students and developers** — especially those building 
 | Watch-list items (unconfirmed) | **59** |
 | Best-fit events (AI agents / Next.js / free / student-eligible) | **14** hackathons |
 
+**Latest sync (last scanned 21 Nov 2026):**
+
+| What | Count |
+|---|---|
+| Hackathons | **224** (106 open, 10 closed, 108 unconfirmed — includes Pixelforge, added by the Devpost auto-update, not on the Muse page) |
+| Community / startup events | **334** — Bengaluru 135, Delhi/NCR 67, Mumbai 49, Online/Other 44, Pune 22, Chennai 17 |
+| Watch-list items (unconfirmed) | **59** |
+| Best-fit events | **34** hackathons |
+| Must Attend (see `/must-attend`) | **59** — 25 hackathons + 34 community events |
+
 Every event carries its date, city/mode, deadline, fee, prize and official link where verified. Unknown fields are `null` / "TBA" / "Unconfirmed" — **nothing is invented**. 18 hackathon cards use the organiser's official banner; the rest use a category illustration, labelled on the card (see [`docs/BANNERS.md`](docs/BANNERS.md)).
 
 There is **no auto-apply** anywhere on this site. You pick an event here and apply yourself on the official page.
