@@ -10,17 +10,9 @@ import {
   mustAttendHackathons,
   type PortalEvent,
 } from "../../lib/events";
+import { Star } from "lucide-react";
 import { EventCard } from "../components/EventCard";
-
-const NAV = [
-  { href: "/", label: "Home" },
-  { href: "/must-attend", label: "Must Attend" },
-  { href: "/swipe", label: "Swipe" },
-  { href: "/#events", label: "Events" },
-  { href: "/#community", label: "Community" },
-  { href: "/#planner", label: "Planner" },
-  { href: "/#sources", label: "Sources" },
-];
+import { MobileNav, SiteFooter, SiteHeader } from "../components/SiteChrome";
 
 type FeeFilter = "" | "free" | "paid";
 type TypeFilter = "" | "hackathons" | "community";
@@ -41,7 +33,7 @@ function FilterChip({
       className={`rounded-full border px-4 py-2 text-sm font-bold ${
         active
           ? "border-teal-700 bg-teal-700 text-white"
-          : "border-stone-300 bg-white text-stone-700 hover:border-teal-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200"
+          : "border-neutral-300 bg-white text-neutral-700 hover:border-teal-700"
       }`}
     >
       {children}
@@ -82,43 +74,13 @@ export default function MustAttend() {
   const closingSoonCommunity = closingSoon.filter(({ kind }) => kind === "Community").length;
 
   return (
-    <div className="min-h-screen bg-stone-100 pb-20 text-stone-900 md:pb-0 dark:bg-stone-950 dark:text-stone-100">
-      {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-stone-200 bg-white/90 backdrop-blur dark:border-stone-800 dark:bg-stone-950/90">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3">
-          <a href="/" className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-700 text-lg font-extrabold text-white">⌘</span>
-            <span className="leading-tight">
-              <span className="block text-base font-extrabold tracking-tight">Hackathon Portal</span>
-              <span className="block text-[11px] font-medium text-stone-500">For engineering students · India</span>
-            </span>
-          </a>
-          <nav className="hidden items-center gap-1 md:flex">
-            {NAV.map((n) => (
-              <a
-                key={n.href}
-                href={n.href}
-                aria-current={n.href === "/must-attend" ? "page" : undefined}
-                className={`rounded-full px-3 py-2 text-sm font-semibold ${
-                  n.href === "/must-attend"
-                    ? "bg-teal-700 text-white"
-                    : "text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-800"
-                }`}
-              >
-                {n.label}
-              </a>
-            ))}
-          </nav>
-          <span className="hidden rounded-full bg-green-100 px-3 py-1.5 text-xs font-bold text-green-800 sm:block dark:bg-green-900 dark:text-green-200">
-            ● Updated {LAST_SCANNED}
-          </span>
-        </div>
-      </header>
+    <div className="min-h-screen bg-neutral-100 pb-20 text-neutral-900 md:pb-0">
+      <SiteHeader current="must-attend" />
 
       <main className="mx-auto max-w-6xl px-5">
         {/* Hero */}
-        <section className="mt-6 overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500 via-teal-700 to-stone-900 p-6 text-white sm:p-10">
-          <p className="text-xs font-bold uppercase tracking-widest text-amber-200">⭐ Shortlisted for Pranav — not every event, only the ones worth it</p>
+        <section className="mt-6 overflow-hidden rounded-3xl bg-teal-700 p-6 text-white sm:p-10">
+          <p className="text-xs font-bold uppercase tracking-widest text-teal-100">Shortlisted for Pranav — not every event, only the ones worth it</p>
           <h1 className="mt-3 max-w-2xl text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">Must Attend</h1>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-teal-100 sm:text-lg">
             The events a 3rd-year BE CSE student from Yavatmal, building with Next.js / React / TypeScript / Python and AI / GenAI agents,
@@ -133,9 +95,9 @@ export default function MustAttend() {
         </section>
 
         {/* Criteria */}
-        <section className="mt-6 rounded-2xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900 sm:p-6">
+        <section className="mt-6 rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
           <h2 className="font-bold">How an event gets on this page</h2>
-          <p className="mt-1 text-sm leading-relaxed text-stone-600 dark:text-stone-300">
+          <p className="mt-1 text-sm leading-relaxed text-neutral-600">
             Every event here passes all three checks in <code>lib/events.ts</code> (<code>isMustAttend</code>). Nothing is hand-picked, and nothing is invented.
           </p>
           <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm leading-relaxed">
@@ -147,7 +109,7 @@ export default function MustAttend() {
               <strong>Reachable</strong> — online, or in Bengaluru, Pune, Mumbai, Delhi, Chennai, Nagpur, Amravati or Yavatmal.
             </li>
           </ol>
-          <p className="mt-3 text-xs leading-relaxed text-stone-500">
+          <p className="mt-3 text-xs leading-relaxed text-neutral-500">
             Caveats, kept honest: a null fee counts as &ldquo;unknown&rdquo;, not free, so an AI event with no fee recorded can only qualify via Best fit.
             An event whose city was never recorded (e.g. a hybrid event with no venue in the listing) cannot qualify on location either.
             Community events carry no deadline field in the data, so the &ldquo;closing soon&rdquo; count below is hackathons only — check each community event&apos;s own page for its date.
@@ -159,11 +121,11 @@ export default function MustAttend() {
           <div className="flex flex-wrap items-end justify-between gap-2">
             <div>
               <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Must-attend events</h2>
-              <p className="mt-1 text-sm text-stone-500">
+              <p className="mt-1 text-sm text-neutral-500">
                 All {all.length} shown by default — no filter is pre-selected. Tap a chip to narrow down; Free and Hackathons (or any other pair) combine.
               </p>
             </div>
-            <span className="text-sm font-semibold text-stone-500">Showing {filtered.length} of {all.length}</span>
+            <span className="text-sm font-semibold text-neutral-500">Showing {filtered.length} of {all.length}</span>
           </div>
           <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Must-attend filters">
             <FilterChip active={fee === "" && type === ""} onClick={() => { setFee(""); setType(""); }}>
@@ -182,7 +144,7 @@ export default function MustAttend() {
               Community Events ({mustAttendCommunity.length})
             </FilterChip>
           </div>
-          <p className="mt-3 text-xs text-stone-500">
+          <p className="mt-3 text-xs text-neutral-500">
             Closing soon among these: {closingSoonHackathons} hackathons
             {closingSoonCommunity > 0 ? `, ${closingSoonCommunity} community events` : " (community events have no deadline in the data, so they are not counted here)"}.
             Free = fee starts with &ldquo;Free&rdquo;; Paid = a stated paid fee. Events with an unknown fee appear under All only.
@@ -197,31 +159,16 @@ export default function MustAttend() {
             ))}
           </div>
           {filtered.length === 0 && (
-            <p className="mt-6 rounded-2xl border bg-white p-6 text-center text-stone-500 dark:bg-stone-900">
+            <p className="mt-6 rounded-2xl border bg-white p-6 text-center text-neutral-500">
               No must-attend events match those filters. Tap All to see the full shortlist again.
             </p>
           )}
         </section>
 
-        <footer className="mt-12 border-t border-stone-200 pt-5 pb-6 text-center text-xs text-stone-500 dark:border-stone-800">
-          Must Attend · rule in lib/events.ts (isMustAttend) · Last scanned {LAST_SCANNED} · Pick it here. Apply yourself.
-        </footer>
+        <SiteFooter />
       </main>
 
-      {/* Mobile bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-stone-200 bg-white/95 backdrop-blur md:hidden dark:border-stone-800 dark:bg-stone-950/95">
-        <div className="grid grid-cols-7 text-center text-[11px] font-bold">
-          {NAV.map((n) => (
-            <a
-              key={n.href}
-              href={n.href}
-              className={`py-3 ${n.href === "/must-attend" ? "text-teal-700 dark:text-teal-300" : "text-stone-600 dark:text-stone-300"}`}
-            >
-              {n.label}
-            </a>
-          ))}
-        </div>
-      </nav>
+      <MobileNav current="must-attend" />
     </div>
   );
 }
