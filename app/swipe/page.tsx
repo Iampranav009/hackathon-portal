@@ -79,11 +79,40 @@ export default function Swipe() {
   const [toast, setToast] = useState("");
   const [drag, setDrag] = useState({ x: 0, y: 0, active: false });
   const [leaving, setLeaving] = useState<"" | "left" | "right" | "up">("");
-  const dragStart = useRef({ x: 0, y: 0 });
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  // Drag state lives in a ref, not React state: pointermove/up must read the
+  // *latest* position, not the value captured by the render that created the
+  // handler (the old code read stale `drag` state in onPointerUp, so a fast
+  // flick could end below the 100px threshold and snap back).
+  const dragRef = useRef({
+    active: false,
+    locked: "" as "" | "h" | "v" | "up",
+    startX: 0,
+    startY: 0,
+    x: 0,
+    y: 0,
+    lastX: 0,
+    lastT: 0,
+    velocityX: 0,
+    pointerId: -1,
+    // True when the finger started on the banner (non-scrollable part).
+    // An up-drag from there is a swipe-up (Apply); an up-drag from the
+    // scrollable body is just scrolling the description.
+    startOnBanner: false,
+  });
   const dragMoved = useRef(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const deck = useMemo(() => buildDeck(deckType), [deckType]);
+
+  useEffect(() => {
+    const applyHash = () => {
+      if (window.location.hash === "#saved") setShowSaved(true);
+    };
+    applyHash();
+    window.addEventListener("hashchange", applyHash);
+    return () => window.removeEventListener("hashchange", applyHash);
+  }, []);
 
   useEffect(() => {
     setSaved(readIds(LS_SAVED));
@@ -120,7 +149,6 @@ export default function Swipe() {
   }, [deck, mustOnly, freeOnly, saved, applied, skipped, showSaved, showApplied]);
 
   const current = visible[0] ?? null;
-  const next = visible[1] ?? null;
 
   const decide = (action: Action, e: PortalEvent) => {
     if (action === "save") setSaved((s) => (s.includes(e.id) ? s : [...s, e.id]));
@@ -171,28 +199,141 @@ export default function Swipe() {
     }
   };
 
-  const onPointerDown = (ev: React.PointerEvent) => {
-    if (!current) return;
-    dragStart.current = { x: ev.clientX, y: ev.clientY };
-    dragMoved.current = false;
-    (ev.target as HTMLElement).setPointerCapture?.(ev.pointerId);
-    setDrag({ x: 0, y: 0, active: true });
-  };
-  const onPointerMove = (ev: React.PointerEvent) => {
-    if (!drag.active || !current) return;
-    const dx = ev.clientX - dragStart.current.x;
-    const dy = ev.clientY - dragStart.current.y;
-    if (Math.abs(dx) + Math.abs(dy) > 6) dragMoved.current = true;
-    setDrag({ x: dx, y: dy, active: true });
-  };
-  const onPointerUp = () => {
-    if (!drag.active || !current) return;
-    const { x, y } = drag;
-    if (x > 100) swipe("save");
-    else if (x < -100) swipe("skip");
-    else if (y < -100) swipe("apply");
-    else setDrag({ x: 0, y: 0, active: false });
-  };
+  /**
+   * Fingertip swipe — native Pointer Events on the card, attached with
+   * addEventListener (not React onPointer* props).
+   *
+   * Why the old code never swiped on a phone:
+   * 1. The card body is a scrollable div (overflow-y-auto). A finger
+   *    starting on the text/description is a *scroll* gesture: the
+   *    browser takes over the touch, fires pointercancel, and React's
+   *    onPointerMove stops firing — the card never follows the finger.
+   * 2. `touch-none` (touch-action: none) on the outer div did not fix
+   *    it: touch-action is per-element, and the scrollable child still
+   *    had the default (auto), so the browser still claimed the touch.
+   * 3. setPointerCapture was called on ev.target (whatever child the
+   *    finger happened to land on — an img, a span), not on the card.
+   * 4. onPointerUp read the `drag` React state from its render-time
+   *    closure, which can lag the last pointermove — a fast flick could
+   *    read x < 100px and snap back instead of swiping.
+   *
+   * The fix: touch-action: pan-y on the card AND on the article AND on
+   * the scrollable body (the browser intersects touch-action from the
+   * touch target up to the scroll container, so pan-y on the outer div
+   * alone was ignored for touches starting on the text — the scroll
+   * div's `auto` won and the browser claimed the touch for scrolling,
+   * firing pointercancel after the first move). With pan-y everywhere
+   * in the card, the browser may scroll vertically, but horizontal
+   * movement is handed to JS. The banner is touch-action: none (it has
+   * nothing scrollable), so an up-drag from the banner also reaches JS
+   * as swipe-up (Apply) instead of the browser claiming the vertical
+   * pan and firing pointercancel. Direction lock on the first ~10px of
+   */
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el || !current) return;
+    const d = dragRef.current;
+
+    const onDown = (ev: PointerEvent) => {
+      if (!ev.isPrimary) return;
+      if ((ev.target as HTMLElement).closest("button, a")) return;
+      d.active = true;
+      d.locked = "";
+      d.startX = ev.clientX;
+      d.startY = ev.clientY;
+      d.x = 0;
+      d.y = 0;
+      d.lastX = ev.clientX;
+      d.lastT = performance.now();
+      d.velocityX = 0;
+      d.pointerId = ev.pointerId;
+      d.startOnBanner = !(ev.target as HTMLElement).closest("[data-scroll]");
+      dragMoved.current = false;
+    };
+
+    const onMove = (ev: PointerEvent) => {
+      if (!d.active || ev.pointerId !== d.pointerId) return;
+      const dx = ev.clientX - d.startX;
+      const dy = ev.clientY - d.startY;
+      if (!d.locked) {
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+        // Direction lock: horizontal wins the gesture; vertical from the
+        // banner is swipe-up (Apply); vertical from the scrollable body
+        // is just scrolling the description.
+        d.locked =
+          Math.abs(dx) > Math.abs(dy) ? "h" : d.startOnBanner && dy < 0 ? "up" : "v";
+        if (d.locked === "v") {
+          // Vertical: release the drag so the card body can scroll.
+          d.active = false;
+          return;
+        }
+        // Horizontal: capture the pointer on the CARD (not the child
+        // the finger landed on) so moves keep arriving even if the
+        // finger slides off the card.
+        try {
+          el.setPointerCapture(ev.pointerId);
+        } catch {
+          // Already released / not capturable — moves still arrive
+          // while the finger stays over the card.
+        }
+        setDrag({ x: 0, y: 0, active: true });
+      }
+      if (d.locked !== "h" && d.locked !== "up") return;
+      // Stop the browser from scrolling sideways once we own the gesture.
+      ev.preventDefault();
+      const now = performance.now();
+      const dt = now - d.lastT;
+      if (dt > 0) d.velocityX = (ev.clientX - d.lastX) / dt;
+      d.lastX = ev.clientX;
+      d.lastT = now;
+      d.x = dx;
+      d.y = dy;
+      if (Math.abs(dx) + Math.abs(dy) > 6) dragMoved.current = true;
+      setDrag({ x: dx, y: dy, active: true });
+    };
+
+    const finish = (ev: PointerEvent) => {
+      if (!d.active || ev.pointerId !== d.pointerId) return;
+      d.active = false;
+      if (d.locked !== "h" && d.locked !== "up") {
+        setDrag({ x: 0, y: 0, active: false });
+        return;
+      }
+      const { x, y } = d;
+      const width = el.offsetWidth || 320;
+      // Complete the swipe at 80px, or 25% of the card width, or on a
+      // fast flick (velocity > 0.5 px/ms) — a short sharp flick counts.
+      const threshold = Math.min(80, width * 0.25);
+      const fling = Math.abs(d.velocityX) > 0.5;
+      if (x > threshold || (fling && d.velocityX > 0)) swipe("save"); // right = select/save
+      else if (x < -threshold || (fling && d.velocityX < 0)) swipe("skip"); // left = reject/skip
+      else if (y < -threshold && Math.abs(y) > Math.abs(x)) swipe("apply"); // up = apply
+      else setDrag({ x: 0, y: 0, active: false });
+    };
+
+    const onCancel = () => {
+      d.active = false;
+      d.locked = "";
+      setDrag({ x: 0, y: 0, active: false });
+    };
+
+    // { passive: false } so preventDefault() in onMove actually works.
+    el.addEventListener("pointerdown", onDown);
+    el.addEventListener("pointermove", onMove, { passive: false });
+    el.addEventListener("pointerup", finish);
+    el.addEventListener("pointercancel", onCancel);
+    // Re-attach when the card mounts or changes: on first render `current`
+    // exists but the card is still in its "Loading deck…" state, so
+    // cardRef.current is null — without `mounted` in the deps the
+    // listeners would never be attached at all (that is what the
+    // headless touch test caught).
+    return () => {
+      el.removeEventListener("pointerdown", onDown);
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerup", finish);
+      el.removeEventListener("pointercancel", onCancel);
+    };
+  }, [current, mounted]);
 
   const rotation = drag.x / 18;
   const overlay = drag.x > 40 ? "save" : drag.x < -40 ? "skip" : drag.y < -40 ? "apply" : null;
@@ -289,19 +430,13 @@ export default function Swipe() {
           </div>
         ) : (
           <>
-            {next && (
-              <div className="pointer-events-none absolute inset-x-4 top-0 hidden" aria-hidden="true" />
-            )}
             <div
-              className="relative min-h-0 flex-1 touch-none select-none"
+              ref={cardRef}
+              className="relative min-h-0 flex-1 select-none [touch-action:pan-y]"
               style={cardStyle}
-              onPointerDown={onPointerDown}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-              onPointerCancel={() => setDrag({ x: 0, y: 0, active: false })}
             >
-              <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-sm">
-                <div className="relative h-44 w-full shrink-0 overflow-hidden bg-neutral-100">
+              <article className="flex h-full touch-pan-y flex-col overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-sm">
+                <div className="relative h-44 w-full shrink-0 touch-none overflow-hidden bg-neutral-100">
                   {current.banner ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -334,7 +469,7 @@ export default function Swipe() {
                   )}
                 </div>
 
-                <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto p-4 pr-16">
+                <div data-scroll className="relative flex min-h-0 flex-1 touch-pan-y flex-col overflow-y-auto p-4 pr-16">
                   <h2 className="text-xl font-bold leading-tight">{current.title}</h2>
 
                   <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 rounded-2xl border border-neutral-200 bg-neutral-50 p-3 text-sm">
@@ -360,7 +495,11 @@ export default function Swipe() {
                   {current.notes && (
                     <p className="mt-3 rounded-xl border border-neutral-200 p-2.5 text-xs leading-relaxed text-neutral-600">{current.notes}</p>
                   )}
-                  {current.verified && <p className="mt-3 text-xs font-semibold text-teal-700">Verified listing</p>}
+                  {current.verified ? (
+                    <p className="mt-3 text-xs font-semibold text-teal-700">Verified listing</p>
+                  ) : (
+                    <p className="mt-3 text-xs font-semibold text-neutral-500">Unverified — check the organiser page</p>
+                  )}
 
                   <div className="absolute right-3 top-1/2 flex -translate-y-1/2 flex-col gap-2" onPointerDown={(e) => e.stopPropagation()}>
                     <Button size="iconLg" onClick={() => swipe("apply")} disabled={!current.link} aria-label="Apply — opens the official page" title="Apply">
@@ -395,30 +534,10 @@ export default function Swipe() {
         )}
       </main>
 
-      {/* Mobile-only bottom nav: Home, Swipe, Must Attend, Saved */}
-      <nav className="shrink-0 border-t border-neutral-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden" aria-label="Primary">
-        <div className="grid grid-cols-4 text-center">
-          <a href="/" className="flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-semibold text-neutral-600">
-            <Home className="h-5 w-5" /> Home
-          </a>
-          <a href="/swipe" aria-current="page" className="flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-semibold text-teal-700">
-            <Heart className="h-5 w-5" /> Swipe
-          </a>
-          <a href="/must-attend" className="flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-semibold text-neutral-600">
-            <Star className="h-5 w-5" /> Must Attend
-          </a>
-          <button
-            onClick={() => { setShowSaved(!showSaved); setShowApplied(false); }}
-            aria-pressed={savedView}
-            className={`flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-semibold ${savedView ? "text-teal-700" : "text-neutral-600"}`}
-          >
-            <Bookmark className="h-5 w-5" /> Saved
-          </button>
-        </div>
-      </nav>
+      {/* No bottom navigation on Swipe — full-screen deck, like Tinder. */}
 
       {toast && (
-        <p role="status" className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-full bg-neutral-900 px-4 py-2 text-sm font-semibold text-white">
+        <p role="status" className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-full bg-neutral-900 px-4 py-2 text-sm font-semibold text-white">
           {toast}
         </p>
       )}
