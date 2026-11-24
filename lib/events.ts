@@ -47,10 +47,28 @@ export const watchlistItems: WatchlistItem[] = (watchlist as { events: Watchlist
 
 export const COMMUNITY_CITIES = ["Bengaluru", "Pune", "Mumbai", "Delhi/NCR", "Chennai", "Online/Other"] as const;
 
-/** Closing soon = an open event whose deadline mentions a date in Nov/Dec 2026. */
+const MONTHS: Record<string, number> = {
+  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+};
+
+/**
+ * Closing soon = an open event whose deadline is within 30 days after the
+ * last scan (LAST_SCANNED is the reference, so the rule stays correct as
+ * the year turns — the old version was a hardcoded Nov/Dec 2026 regex).
+ * Deadlines with no parseable day fall back to a month mention in the
+ * scan window (Nov/Dec 2026, Jan 2027).
+ */
 export function isClosingSoon(e: PortalEvent): boolean {
   if (e.status !== "open" || !e.deadline) return false;
-  return /(19|20|21|22|23|24|25|26|27|28|29|30) Nov|Dec 2026|1 Dec|2 Dec|3 Dec|4 Dec|5 Dec|6 Dec|7 Dec/.test(e.deadline);
+  const ref = new Date(`${LAST_SCANNED}T00:00:00`);
+  const m = e.deadline.match(/(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(20\d\d)/i);
+  if (m) {
+    const d = new Date(Number(m[3]), MONTHS[m[2].toLowerCase()], Number(m[1]));
+    const days = Math.round((d.getTime() - ref.getTime()) / 86400000);
+    return days >= -1 && days <= 30;
+  }
+  return /(Nov|Dec)\s+2026|Jan\s+2027/.test(e.deadline);
 }
 
 /**
