@@ -40,7 +40,7 @@ export interface WatchlistItem {
   lastScanned: string | null;
 }
 
-export const LAST_SCANNED = "2026-11-27";
+export const LAST_SCANNED = "2026-11-28";
 export const hackathonEvents: PortalEvent[] = (hackathons as { events: PortalEvent[] }).events;
 export const communityEvents: PortalEvent[] = (community as { events: PortalEvent[] }).events;
 export const watchlistItems: WatchlistItem[] = (watchlist as { events: WatchlistItem[] }).events;
